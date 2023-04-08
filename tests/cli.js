@@ -1,6 +1,11 @@
 import test from 'ava'
 import fs from 'node:fs'
 import { cliScript, macro } from './_helpers.js'
+import { exec } from 'child_process'
+import { promisify } from 'util'
+import path from 'node:path'
+
+const execAsync = promisify(exec)
 
 const badJson = {
   version: '1.0.0',
@@ -487,4 +492,28 @@ test('run `cli --quiet` on 1 non-json file', macro.testCLI, {
   ],
   args: ['*/package.json', '--quiet'],
   message: 'Should output error message',
+})
+
+test('should read from stdin with good json', async (t) => {
+  const jsonData = JSON.stringify(goodJson)
+  const execFile = path.resolve(process.cwd(), 'cli.js')
+  const command = `echo '${jsonData}' | node ${execFile}`
+  const { stdout, stderr } = await execAsync(command)
+
+  // trimming here because outputing to stdout adds a newline
+  t.is(stdout.trimEnd(), jsonData)
+  t.is(stderr, '')
+  t.pass()
+})
+
+test('should read from stdin with bad json', async (t) => {
+  const jsonData = JSON.stringify(badJson)
+  const execFile = path.resolve(process.cwd(), 'cli.js')
+  const command = `echo '${jsonData}' | node ${execFile}`
+  const { stdout, stderr } = await execAsync(command)
+
+  // trimming here because outputing to stdout adds a newline
+  t.not(stdout.trimEnd(), jsonData)
+  t.is(stderr, '')
+  t.pass()
 })

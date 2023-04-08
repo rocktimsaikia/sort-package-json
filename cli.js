@@ -58,41 +58,54 @@ function sortPackageJsonFiles(patterns, options) {
 }
 
 function run() {
-  const cliArguments = process.argv.slice(2)
+  // Read from stdin only if it's piped
+  if (!process.stdin.isTTY) {
+    process.stdin.on('readable', () => {
+      const chunk = process.stdin.read()
+      if (chunk !== null) {
+        const sortedJson = sortPackageJson(chunk.toString())
+        console.log(sortedJson)
+      }
+    })
+  } else {
+    const cliArguments = process.argv.slice(2)
 
-  if (
-    cliArguments.some((argument) => argument === '--help' || argument === '-h')
-  ) {
-    return showHelpInformation()
-  }
-
-  if (
-    cliArguments.some(
-      (argument) => argument === '--version' || argument === '-v',
-    )
-  ) {
-    return showVersion()
-  }
-
-  const patterns = []
-  let isCheck = false
-  let shouldBeQuiet = false
-
-  for (const argument of cliArguments) {
-    if (argument === '--check' || argument === '-c') {
-      isCheck = true
-    } else if (argument === '--quiet' || argument === '-q') {
-      shouldBeQuiet = true
-    } else {
-      patterns.push(argument)
+    if (
+      cliArguments.some(
+        (argument) => argument === '--help' || argument === '-h',
+      )
+    ) {
+      return showHelpInformation()
     }
-  }
 
-  if (!patterns.length) {
-    patterns[0] = 'package.json'
-  }
+    if (
+      cliArguments.some(
+        (argument) => argument === '--version' || argument === '-v',
+      )
+    ) {
+      return showVersion()
+    }
 
-  sortPackageJsonFiles(patterns, { isCheck, shouldBeQuiet })
+    const patterns = []
+    let isCheck = false
+    let shouldBeQuiet = false
+
+    for (const argument of cliArguments) {
+      if (argument === '--check' || argument === '-c') {
+        isCheck = true
+      } else if (argument === '--quiet' || argument === '-q') {
+        shouldBeQuiet = true
+      } else {
+        patterns.push(argument)
+      }
+    }
+
+    if (!patterns.length) {
+      patterns[0] = 'package.json'
+    }
+
+    sortPackageJsonFiles(patterns, { isCheck, shouldBeQuiet })
+  }
 }
 
 run()
